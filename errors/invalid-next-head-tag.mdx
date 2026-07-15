@@ -1,0 +1,43 @@
+---
+title: Invalid Tag In Head Component
+---
+
+## Why This Error Occurred
+
+A tag that is not valid inside `<head>` (for example `<html>` or `<div>`) was
+added using the `next/head` component.
+
+Only a fixed set of elements are allowed inside `<head>`. When an invalid tag is
+rendered there, the browser's HTML parser closes `<head>` early and moves the
+remaining head content into `<body>`, which breaks head reconciliation and can
+lead to confusing runtime errors.
+
+## Possible Ways to Fix It
+
+Only render valid head elements inside `next/head`: `<base>`, `<link>`,
+`<meta>`, `<noscript>`, `<script>`, `<style>`, `<title>`, and `<template>`.
+
+```jsx filename="pages/index.js"
+import Head from 'next/head'
+
+export default function Page() {
+  return (
+    <>
+      <Head>
+        <title>My page title</title>
+        <meta name="description" content="My page description" />
+      </Head>
+      <h1>Hello</h1>
+    </>
+  )
+}
+```
+
+To set attributes on the `<html>` or `<body>` element, use a
+[custom `Document`](/docs/pages/building-your-application/routing/custom-document)
+instead.
+
+## Useful Links
+
+- [`next/head` API Reference](/docs/pages/api-reference/components/head)
+- [Custom Document](/docs/pages/building-your-application/routing/custom-document)

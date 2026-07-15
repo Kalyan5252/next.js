@@ -47,6 +47,52 @@ function onlyReactElement(
 
 const METATYPES = ['name', 'httpEquiv', 'charSet', 'itemProp']
 
+// Tags that are valid children of `<head>`. Any other host (string-typed)
+// element placed inside `next/head` (e.g. `<html>` or `<div>`) causes the
+// browser's HTML parser to close `<head>` early and move the remaining head
+// content into `<body>`, which breaks head reconciliation. We filter these
+// out and warn in development so the mistake surfaces clearly.
+const VALID_HEAD_TAGS = new Set([
+  'base',
+  'link',
+  'meta',
+  'noscript',
+  'script',
+  'style',
+  'title',
+  'template',
+])
+
+/*
+ returns a function for filtering out head child elements that are not valid
+ inside `<head>`, warning about each offending tag once in development
+*/
+function onlyValidHeadTag() {
+  return (child: React.ReactElement<any>) => {
+    // Custom components (function/class types) are not host elements; leave
+    // them alone since they may render valid head tags themselves.
+    if (typeof child.type !== 'string' || VALID_HEAD_TAGS.has(child.type)) {
+      return true
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      const { warnOnce } =
+        require('./utils/warn-once') as typeof import('./utils/warn-once')
+      warnOnce(
+        `Warning: A <${child.type}> tag was provided to next/head. Only ${Array.from(
+          VALID_HEAD_TAGS
+        )
+          .map((tag) => `<${tag}>`)
+          .join(
+            ', '
+          )} tags are allowed inside <Head>. The <${child.type}> tag will be ignored.\nSee more info here: https://nextjs.org/docs/messages/invalid-next-head-tag`
+      )
+    }
+
+    return false
+  }
+}
+
 /*
  returns a function for filtering head child elements
  which shouldn't be duplicated, like <title/>
@@ -121,6 +167,7 @@ function reduceComponents(
 ) {
   return headChildrenElements
     .reduce(onlyReactElement, [])
+    .filter(onlyValidHeadTag())
     .reverse()
     .concat(defaultHead().reverse())
     .filter(unique())
